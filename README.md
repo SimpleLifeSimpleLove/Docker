@@ -161,3 +161,194 @@ docker : 隔离（最核心的内容），十分的小巧，运行镜像就行�
 
   Docker是内核级别的虚拟化，可以在一个物理机上运行很多实例！服务器的性能可以被压榨到极致！
 
+
+
+## Docker安装
+
+### Docker的基本组成
+
+![image-20201128192250503](README.assets/image-20201128192250503.png)
+
+**镜像（image）：**
+
+docker镜像就好比一个模板，可以通过这个模板来创建容器服务，tomcat ---> run ---> tomcat01容器（提供服务器），通过这个镜像可以创建多个容器（最终服务运行或者项目运行就是在容器中的）。
+
+**容器（container）：**
+
+Docker利用容器技术，独立运行一个或者一组应用，通过镜像来创建。
+
+启动，停止，删除，基本命令！
+
+目前就可以把这个容器理解为就是一个简易的linux系统。
+
+****
+
+**仓库（repository）：**
+
+仓库就是存放镜像的地方！仓库分为共有仓库和私有仓库！
+
+Docker Hub（默认是国外的）
+
+阿里云......都有容器服务器（配置镜像加速！）
+
+
+
+### 安装Docker
+
+* 环境准备
+
+  1. 需要会一些linux的基础
+  2. Centos 7
+  3. 使用Xshell连接远程服务操作！
+
+* 环境查看
+
+  ```shell
+  # 系统内核
+  [root@iz2zeghhl3r07a3pgronm2z ~]# uname -r
+  3.10.0-693.2.2.el7.x86_64
+  ```
+
+  ```shell
+  # 系统版本
+  [root@iz2zeghhl3r07a3pgronm2z ~]# cat /etc/os-release 
+  NAME="CentOS Linux"
+  VERSION="7 (Core)"
+  ID="centos"
+  ID_LIKE="rhel fedora"
+  VERSION_ID="7"
+  PRETTY_NAME="CentOS Linux 7 (Core)"
+  ANSI_COLOR="0;31"
+  CPE_NAME="cpe:/o:centos:centos:7"
+  HOME_URL="https://www.centos.org/"
+  BUG_REPORT_URL="https://bugs.centos.org/"
+  
+  CENTOS_MANTISBT_PROJECT="CentOS-7"
+  CENTOS_MANTISBT_PROJECT_VERSION="7"
+  REDHAT_SUPPORT_PRODUCT="centos"
+  REDHAT_SUPPORT_PRODUCT_VERSION="7"
+  ```
+
+* 安装Docker
+
+  ```shell
+  # 1.卸载旧的版本
+  yum remove docker \
+                    docker-client \
+                    docker-client-latest \
+                    docker-common \
+                    docker-latest \
+                    docker-latest-logrotate \
+                    docker-logrotate \
+                    docker-engine
+                    
+  # 2.安装依赖
+  yum install -y yum-utils
+  
+  # 3.设置镜像仓库
+  yum-config-manager \
+      --add-repo \
+      https://download.docker.com/linux/centos/docker-ce.repo  # 默认是国外的
+  
+  yum-config-manager \
+      --add-repo \
+  	http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo  # 推荐使用阿里云的，比较快
+  	
+  # 更新yum软件包索引
+  yum makecache fast
+  
+  # 4.安装docker  docker-ce 社区 	ee 企业版
+  yum install docker-ce docker-ce-cli containerd.io
+  
+  # 5.启动docker
+  systemctl start docker
+  
+  # 6.查看docker版本，如下图
+  docker version
+  ```
+
+  ![image-20201128191351533](README.assets/image-20201128191351533.png)
+
+  ```shell
+  # 7.hello-word
+  docker run hello-world
+  ```
+
+  ![image-20201128191553935](README.assets/image-20201128191553935.png)
+
+  ```shell
+  # 8.查看这个下载的 hello-world镜像
+  [root@iz2zeghhl3r07a3pgronm2z ~]# docker images
+  REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+  hello-world         latest              bf756fb1ae65        11 months ago       13.3kB
+  ```
+
+* 卸载docker
+
+  ```shell
+  # 1.卸载依赖
+  yum remove docker-ce docker-ce-cli containerd.io
+  
+  # 2.删除资源
+  rm -rf /var/lib/docker
+  
+  # /var/lib/docker 	docker的默认工作目录！
+  ```
+
+  
+
+### 阿里云镜像加速
+
+1.登陆阿里云找到容器服务
+
+![image-20201128193151459](README.assets/image-20201128193151459.png)
+
+2.找到镜像加速地址
+
+![image-20201128193246520](README.assets/image-20201128193246520.png)
+
+3.配置使用
+
+```shell
+sudo mkdir -p /etc/docker
+
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": ["https://ky28w7nc.mirror.aliyuncs.com"]
+}
+EOF
+
+sudo systemctl daemon-reload
+
+sudo systemctl restart docker
+```
+
+
+
+### 回顾hello-world流程
+
+![image-20201128193647769](README.assets/image-20201128193647769.png)
+
+![image-20201128193743425](README.assets/image-20201128193743425.png)
+
+
+
+### 底层原理
+
+**Docker是怎样工作的？**
+
+Docker就是一个 Client - Server 结构的系统，Docker的守护京城运行在主机上。通过Socket客户端访问！
+
+DockerServer接收到Docker-Client的指令，就会执行这个命令！
+
+![image-20201128194016914](README.assets/image-20201128194016914.png)
+
+**Docker为什么比VM快？**
+
+1. Docker有着比虚拟机更少的抽象层。
+2. Docker利用的是宿主机的内核，VM需要的是Guest OS。
+
+![image-20201128194205527](README.assets/image-20201128194205527.png)
+
+所以说，新建一个容器的时候，docker不需要像虚拟机一样重新加载一个操作系统内核，避免引导。虚拟机加载的是Guest OS，分钟级别的，而docker是利用宿主机的操作系统，省略了这个复杂的过程，秒级！
+
