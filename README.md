@@ -205,13 +205,13 @@ Docker Hub（默认是国外的）
 
   ```shell
   # 系统内核
-  [root@iz2zeghhl3r07a3pgronm2z ~]# uname -r
+  [root@wxx ~]# uname -r
   3.10.0-693.2.2.el7.x86_64
   ```
 
   ```shell
   # 系统版本
-  [root@iz2zeghhl3r07a3pgronm2z ~]# cat /etc/os-release 
+  [root@wxx ~]# cat /etc/os-release 
   NAME="CentOS Linux"
   VERSION="7 (Core)"
   ID="centos"
@@ -278,7 +278,7 @@ Docker Hub（默认是国外的）
 
   ```shell
   # 8.查看这个下载的 hello-world镜像
-  [root@iz2zeghhl3r07a3pgronm2z ~]# docker images
+  [root@wxx ~]# docker images
   REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
   hello-world         latest              bf756fb1ae65        11 months ago       13.3kB
   ```
@@ -352,3 +352,339 @@ DockerServer接收到Docker-Client的指令，就会执行这个命令！
 
 所以说，新建一个容器的时候，docker不需要像虚拟机一样重新加载一个操作系统内核，避免引导。虚拟机加载的是Guest OS，分钟级别的，而docker是利用宿主机的操作系统，省略了这个复杂的过程，秒级！
 
+
+
+## Docker的常用命令
+
+### 帮助命令
+
+```shell
+docker version 			# 显示docker的版本信息
+docker info				# 显示docker的系统信息，包括镜像和容器数量
+docker 命令 --help	   # 帮助命令
+```
+
+文档帮助地址：https://docs.docker.com/engine/reference/run/
+
+
+
+### 镜像命令
+
+**docker images ：**查看所有本地主机的镜像
+
+```shell
+[root@wxx ~]# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+wordpress           latest              6edecd0f5c75        3 weeks ago         546MB
+mysql               5.7                 1b12f2e9257b        5 weeks ago         448MB
+hello-world         latest              bf756fb1ae65        11 months ago       13.3kB
+
+# 解释
+REPOSITORY	镜像的仓库源
+TAG			镜像的标签
+IMAGE ID	镜像的id
+CREATED		镜像的创建时间
+SIZE		镜像的大小
+
+# 可选项
+	-a, --all		# 列出所有的镜像
+	-q, --quiet		# 只显示镜像的id
+```
+
+**docker search ：**搜索镜像
+
+```shell
+[root@wxx ~]# docker search mysql
+NAME                              DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
+mysql                             MySQL is a widely used, open-source relation…   10202               [OK]                
+mariadb                           MariaDB is a community-developed fork of MyS…   3753                [OK]                
+mysql/mysql-server                Optimized MySQL Server Docker images. Create…   746                                     [OK]
+
+# 可选项
+	--filter=STARS=3000		# 搜索出来的镜像就是STARS大于3000的
+[root@wxx ~]# docker search mysql --filter=STARS=3000
+NAME                DESCRIPTION                                     STARS               OFFICIAL            AUTOMATED
+mysql               MySQL is a widely used, open-source relation…   10202               [OK]                
+mariadb             MariaDB is a community-developed fork of MyS…   3753                [OK]
+```
+
+**docker pull ：**下载镜像
+
+```shell
+# 下载镜像 docker pull 镜像没[:tag]
+[root@wxx ~]# docker pull mysql
+Using default tag: latest	# 如果不写tag，默认就是latest
+latest: Pulling from library/mysql
+852e50cd189d: Pull complete 	# 分层下载，docker image的核心 联合文件系统
+29969ddb0ffb: Pull complete 
+a43f41a44c48: Pull complete 
+5cdd802543a3: Pull complete 
+b79b040de953: Pull complete 
+938c64119969: Pull complete 
+7689ec51a0d9: Pull complete 
+a880ba7c411f: Pull complete 
+984f656ec6ca: Pull complete 
+9f497bce458a: Pull complete 
+b9940f97694b: Pull complete 
+2f069358dc96: Pull complete 
+Digest: sha256:4bb2e81a40e9d0d59bd8e3dc2ba5e1f2197696f6de39a91e90798dd27299b093  # 签名
+Status: Downloaded newer image for mysql:latest
+docker.io/library/mysql:latest  # 真实状态
+
+# 上面的命令等价于
+docker pull docker.io/library/mysql:latest
+
+# 指定版本下载
+[root@wxx ~]# docker pull mysql:5.7
+5.7: Pulling from library/mysql
+852e50cd189d: Already exists 
+29969ddb0ffb: Already exists 
+a43f41a44c48: Already exists 
+5cdd802543a3: Already exists 
+b79b040de953: Already exists 
+938c64119969: Already exists 
+7689ec51a0d9: Already exists 
+36bd6224d58f: Pull complete 
+cab9d3fa4c8c: Pull complete 
+1b741e1c47de: Pull complete 
+aac9d11987ac: Pull complete 
+Digest: sha256:8e2004f9fe43df06c3030090f593021a5f283d028b5ed5765cc24236c2c4d88e
+Status: Downloaded newer image for mysql:5.7
+docker.io/library/mysql:5.7
+```
+
+**docker rmi ：**删除镜像
+
+```shell
+[root@wxx ~]# docker rmi -f 镜像id		# 删除指定的镜像
+[root@wxx ~]# docker rmi -f 镜像id 镜像id  # 删除多个镜像
+[root@wxx ~]# docker rmi -f $(docker images -aq)  # 删除所有镜像
+```
+
+
+
+### 容器命令
+
+**说明：有了镜像才可以创建容器，下载一个 centos 镜像来学习**
+
+```shell
+docker pull centos
+```
+
+**新建容器并启动**
+
+```shell
+docker run [可选参数] image
+
+# 参数说明
+--name="Name"		# 容器名称
+-d					# 后台方式运行
+-it					# 使用交互方式运行，进入容器查看内容
+-p					# 指定容器的端口	-p 8080:8080
+	-p ip:主机端口：容器端口
+	-p 主机端口：容器端口（常用）
+	-p 容器端口
+	容器端口
+-p					# 随机指定端口
+
+# 测试，启动并进入容器
+[root@wxx ~]# docker run -it centos /bin/bash
+[root@6c4df6c7b96b /]# ls  # 查看容器内的centos，基础版本，很多命令都是不完善的
+bin  dev  etc  home  lib  lib64  lost+found  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+[root@6c4df6c7b96b /]# exit  # 从容器退回主机
+exit
+[root@wxx ~]# 
+```
+
+**列出所有正在运行的容器**
+
+```shell
+docker ps
+# 可选项
+			# 列出当前正在运行的容器
+	-a		# 列出当前正在运行的容器 + 历史运行过的容器
+	-n=2	# 列出最近运行的两个容器
+	-q		# 只显示容器的编号
+
+[root@wxx ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES
+
+[root@wxx ~]# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED              STATUS                          PORTS                  NAMES
+6c4df6c7b96b        centos              "/bin/bash"              About a minute ago   Exited (0) About a minute ago                          sweet_ptolemy
+29b7bb3defa3        hello-world         "/hello"                 52 minutes ago       Exited (0) 52 minutes ago                              distracted_fermat
+```
+
+**退出容器**
+
+```shell
+exit		# 容器停止并退出
+Ctrl+P+Q	# 容器不停止退出
+```
+
+**删除容器**
+
+```shell
+docker rm 容器id						# 删除指定的容器，不能删除，如果要强制删除 rm -f
+docker rm -f $(docker ps -aq)	 	 # 删除所有的容器
+docker ps -a -q | xargs docker rm    # 删除所有的容器
+```
+
+**启动和停止容器的操作**
+
+```shell
+docker start 容器id		# 启动容器
+docker restart 容器id		# 重启容器
+docker stop 容器id		# 停止当前正在运行的容器
+docker kill 容器id		# 强制停止当前容器
+```
+
+
+
+### 常用的其他命令
+
+**后台启动容器**
+
+```shell
+docker run -d 镜像名
+
+[root@wxx ~]# docker run -d centos
+
+# 问题：后台启动容器后，docker ps查看发现 centos 停止了
+# 常见的坑：docker容器使用后台运行，如果想不停止的话，就必须有一个前台进程，docker发现没有应用就会自动停止
+```
+
+**查看日志**
+
+```shell
+docker logs -tf --tail 10 容器id
+
+# 可选项
+	-tf				# 显示日志
+	--tail number	# 要显示的日志条数
+
+# 自己编写一段shell，测试日志
+[root@wxx ~]# docker run -d centos /bin/sh -c "while true;do echo hello;sleep 5;done;"
+
+```
+
+**查看容器中进程信息**
+
+```shell
+docker top 容器id
+
+# 测试
+[root@wxx ~]# docker top e29cd5069860
+UID                 PID                 PPID                C                   STIME  
+root                12586               12561               0                   20:59   
+root                12789               12586               0                   21:05   
+```
+
+
+
+**查看容器的元数据**
+
+```shell
+docker inspect 容器id
+
+# 测试
+[root@wxx ~]# docker inspect e29cd5069860
+[
+    {
+        "Id": "e29cd50698608cf8487902af63aff5c43ea3d9d3291fdb134e0a653bcb671f09",
+        "Created": "2020-11-28T12:59:46.777685004Z",
+        "Path": "/bin/sh",
+        "Args": [
+            "-c",
+            "while true;do echo hello;sleep 5;done;"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 12586,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2020-11-28T12:59:47.181074506Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:0d120b6ccaa8c5e149176798b3501d4dd1885f961922497cd0abef155c869566",
+        "ResolvConfPath": "/var/lib/docker/containers/e29cd50698608cf8487902af63aff5c43ea3d9d3291fdb134e0a653bcb671f09/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/e29cd50698608cf8487902af63aff5c43ea3d9d3291fdb134e0a653bcb671f09/hostname",
+        "HostsPath": "/var/lib/docker/containers/e29cd50698608cf8487902af63aff5c43ea3d9d3291fdb134e0a653bcb671f09/hosts",
+        "LogPath": "/var/lib/docker/containers/e29cd50698608cf8487902af63aff5c43ea3d9d3291fdb134e0a653bcb671f09/e29cd50698608cf8487902af63aff5c43ea3d9d3291fdb134e0a653bcb671f09-json.log",
+        "Name": "/distracted_jepsen",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        ......
+    }
+]
+```
+
+**进入当前正在运行的容器**
+
+```shell
+# 通常容器都是使用后台的方式运行的，需要进入容器，修改一些配置，我们有两种进入容器的方式
+
+
+# 方式一
+docker exec -it 容器id bashShell
+# 测试
+[root@wxx ~]# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES
+e29cd5069860        centos              "/bin/sh -c 'while t…"   13 minutes ago      Up 13 minutes                              distracted_jepsen
+1b521b663c6f        centos              "/bin/bash"              39 minutes ago      Up 39 minutes                              kind_gagarin
+318144b5a849        wordpress:latest    "docker-entrypoint.s…"   13 days ago         Up 13 days          0.0.0.0:8000->80/tcp   my_wordpress_wordpress_1
+7e4806106559        1b12f2e9257b        "docker-entrypoint.s…"   13 days ago         Up 13 days          3306/tcp, 33060/tcp    my_wordpress_db_1
+[root@wxx ~]# docker exec -it e29cd5069860 /bin/bash
+[root@e29cd5069860 /]# ps -ef
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 12:59 ?        00:00:00 /bin/sh -c while true;do echo hello;sleep 5;done;
+root       191     1  0 13:13 ?        00:00:00 /usr/bin/coreutils --coreutils-prog-shebang=sleep /usr/bin/sleep 5
+root       192     0  0 13:13 pts/0    00:00:00 /bin/bash
+root       205   192  0 13:13 pts/0    00:00:00 ps -ef
+
+# 方式二
+docker attach 容器id
+# 测试
+[root@wxx ~]# docker attach e29cd5069860
+hello
+hello
+
+# docker exec			# 进入容器后开启一个新的终端，可以在里面操作
+# docker attach			# 进入容器正在执行的终端，不会启动新的进程
+```
+
+**从容器内拷贝文件到主机上**
+
+```shell
+# 创建容器并进入容器命令行
+[root@wxx home]# docker run -it --name="mycentos" centos /bin/bash
+[root@8017e6a7d86d /]# ls
+bin  dev  etc  home  lib  lib64  lost+found  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+[root@8017e6a7d86d /]# cd home/
+# 在容器内新建文件
+[root@8017e6a7d86d home]# touch test.java
+[root@8017e6a7d86d home]# ls
+test.java
+[root@8017e6a7d86d home]# exit
+exit
+# 将文件拷贝到主机上，容器停止也可以拷贝，可以通过 docker ps -a 查看历史容器
+[root@wxx home]# docker cp 8017e6a7d86d:/home/test.java /home
+[root@wxx home]# ls
+my_wordpress  redis  test.java  www
+```
+
+
+
+### 小结
+
+![image-20201128214332310](README.assets/image-20201128214332310.png)
